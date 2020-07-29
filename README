@@ -1,0 +1,25 @@
+Protcheck 1.0.0 - @lockedbyte (https://github.com/lockedbyte/protcheck)
+
+A C utility to check an ELF binary protections parsing the ELF directly instead of using intermediate programs like readelf or grep.
+
+This tool checks for:
+    - FORTIFY Source
+    - NX
+    - PIE
+    - Canary
+    - RELRO
+    - Interesting imports like system or execve
+    - Dangerous functions like gets()
+
+
+Advantages of using C-based program instead of bash/python ones:
+    - You do not depend on external programs like readelf or grep.
+    - Avoid problems: If the program you are using changes it's output, or a user has a different language the results could get wrong.
+    - Parsing the ELF file to check for those protections directly in C could let you understand how to find them manually and how the ELF works internally.
+    - In some CTFs you need to use remote systems that do not have some programs like readelf or grep, using a non-dependant binary could help you to check the protections for the needed binaries
+
+
+Installing:
+
+    make
+    make install
