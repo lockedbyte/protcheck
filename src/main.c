@@ -43,6 +43,13 @@ int precheck_bits(char *loaded) {
     }
 }
 
+int is_directory(const char *path) {
+   struct stat statbuf;
+   if (stat(path, &statbuf) != 0)
+       return 0;
+   return S_ISDIR(statbuf.st_mode);
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -67,7 +74,12 @@ int main(int argc, char *argv[]) {
         printf("\033[1;31m[-] Max filepath size is %d bytes.\033[0m\n\n", MAX_PATH_SIZE);
         exit(0);
     }
-
+    
+    if(is_directory(file_path)) {
+        printf("\033[1;31m[-] Specified a directory, not an ELF file.\033[0m\n\n");
+        exit(0);
+    }
+    
     fd = open(file_path, O_RDONLY);
     if(fd < 0) {
         printf("\033[1;31m[-] File does not exist.\033[0m\n\n");
