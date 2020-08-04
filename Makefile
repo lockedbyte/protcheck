@@ -17,4 +17,5 @@ clean:
 install:
 	sudo cp ./protcheck /usr/bin/protcheck
 	sudo chmod +x /usr/bin/protcheck
+	sudo rm -R /usr/bin/lib/
 	sudo cp -r lib/ /usr/bin/lib/
