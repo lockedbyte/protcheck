@@ -6,8 +6,12 @@
         
 */
 
-#define LIBC_PATH "/usr/bin/lib/libc.so"
-#define RELATIVE_PTH "lib/libc.so"
+
+#define LIBC_PATH_x86 "/usr/bin/lib/libc_x86.so"
+#define LIBC_PATH_x86_64 "/usr/bin/lib/libc_x86_64.so"
+
+#define RELATIVE_PTH_x86 "./lib/libc_x86.so"
+#define RELATIVE_PTH_x86_64 "./lib/libc_x86_64.so"
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 

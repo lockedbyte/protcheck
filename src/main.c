@@ -12,11 +12,37 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include "protcheck.h"
+#include <signal.h>
+#include <unistd.h>
+
+#include "protcheck_x86.h"
+#include "protcheck_x86_64.h"
+#include "elf_defines.h"
 
 #define MAX_PATH_SIZE 256
+
+int precheck_bits(char *loaded) {
+
+    Elf32_Ehdr *a0 = (Elf32_Ehdr *)loaded;	
+    Elf64_Ehdr *a1 = (Elf64_Ehdr *)loaded;
+    
+    if(a0->e_ident[BIT_INDENT_INDEX] == ELFCLASS32)
+        return ELFCLASS32;
+    else if(a0->e_ident[BIT_INDENT_INDEX] == ELFCLASS64)
+        return ELFCLASS64;
+    else {
+        if(a1->e_ident[BIT_INDENT_INDEX] == ELFCLASS32)
+            return ELFCLASS32;
+        else if(a1->e_ident[BIT_INDENT_INDEX] == ELFCLASS64)
+            return ELFCLASS64;
+        else
+            exit(0);
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -54,10 +80,20 @@ int main(int argc, char *argv[]) {
 
     if(memblock == MAP_FAILED) perror("mmap");
     
-    if(argc > 2)
-        launch_checks(memblock, file_path, argv[2]);
-    else
-        launch_checks(memblock, file_path, NULL);
+    if(precheck_bits(memblock) == ELFCLASS32) {
+        if(argc > 2)
+            launch_checks_x86(memblock, file_path, argv[2]);
+        else
+            launch_checks_x86(memblock, file_path, NULL);
+    } else if(precheck_bits(memblock) == ELFCLASS64) {
+        if(argc > 2)
+            launch_checks_x86_64(memblock, file_path, argv[2]);
+        else
+            launch_checks_x86_64(memblock, file_path, NULL);
+    } else {
+        printf("\033[1;31m[-] Invalid ELF file.\033[0m\n\n");
+        exit(0);
+    }
         
     printf("\n");
     
