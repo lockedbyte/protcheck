@@ -6,8 +6,9 @@ all:
 	rm -R tmp/
 	mkdir tmp/
 	${CC} ${CFLAGS_OBJ} src/main.c -o tmp/main.o
-	${CC} ${CFLAGS_OBJ} src/protcheck.c -o tmp/protcheck.o
-	${CC} ${CFLAGS_REL} ./protcheck tmp/protcheck.o tmp/main.o -Wl,-z,relro,-z,now -fstack-protector-all -D_FORTIFY_SOURCE=2
+	${CC} ${CFLAGS_OBJ} src/protcheck_x86.c -o tmp/protcheck_x86.o
+	${CC} ${CFLAGS_OBJ} src/protcheck_x86_64.c -o tmp/protcheck_x86_64.o
+	${CC} ${CFLAGS_REL} ./protcheck tmp/protcheck_x86.o tmp/protcheck_x86_64.o tmp/main.o -Wl,-z,relro,-z,now -fstack-protector-all -D_FORTIFY_SOURCE=2
 	chmod +x ./protcheck
 
 clean:
