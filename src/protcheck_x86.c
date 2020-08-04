@@ -229,7 +229,7 @@ int check_NX_x86(void) {
 	    if(phdr[i].p_type == PT_GNU_STACK && 
 	        phdr[i].p_flags == RWE_PROT)
 		        return NX_FALSE;
-        return NX_TRUE; // What happens if no PT_GNU_STACK is defined?
+        return NX_TRUE;
 
 }
 
