@@ -107,8 +107,7 @@ int load_libc_x86(char *libc_path) {
                 printf("\033[1;31m[-] The loaded libc architecture is wrong. Skipping FORTIFY checks then...\033[0m\n\n");
                 fortify_flag_x86 = 0;
                 return 0;
-            } else
-                exit(0);
+            }
         }
         
         libc_base = (long unsigned int)memchunk;
@@ -458,8 +457,9 @@ int launch_checks_x86(const char *memchunk, char *file_path, char *libc_path) {
     }
 
     snprintf(full_arch, sizeof(full_arch)-1, "%s - %s", get_bits_x86(), get_arch_x86());
-
-    load_libc_x86(libc_path);
+    
+    if(fortify_flag_x86)
+        load_libc_x86(libc_path);
     
     printf("\033[1;34m[*]\033[0m '%s\033[0m'\033[0m\n", file_path);
     printf("  Arch: \t%s\033[0m\n", full_arch);
