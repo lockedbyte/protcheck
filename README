@@ -22,4 +22,4 @@ Advantages of using C-based program instead of bash/python ones:
 Installing:
 
     make
-    make install
+    sudo make install
