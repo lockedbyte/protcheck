@@ -349,6 +349,8 @@ int check_ELF_x86(void) {
     else
         mem_error();
 
+    if(elf_ehdr->e_shstrndx > sizeof(Elf32_Shdr))
+        mem_error();
 
     if((base + shdr[elf_ehdr->e_shstrndx].sh_offset) <= (base + global_size_x86 - sname_prox_size_x86))
        sname = (char *)(base + shdr[elf_ehdr->e_shstrndx].sh_offset);
