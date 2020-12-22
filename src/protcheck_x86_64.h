@@ -18,5 +18,5 @@ char *get_arch_x86_64(void);
 char *get_bits_x86_64(void);
 void check_rwx_segments_x86_64(void);
 void check_dangerous_imports_x86_64(void);
-int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path);
+int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path, int global_sz);
 // -------------

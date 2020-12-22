@@ -24,6 +24,7 @@
 
 #define MAX_PATH_SIZE 256
 
+
 int precheck_bits(char *loaded) {
 
     Elf32_Ehdr *a0 = (Elf32_Ehdr *)loaded;	
@@ -56,6 +57,7 @@ int main(int argc, char *argv[]) {
     const char *memblock;
     int fd;
     struct stat sb;
+    int global_size;
     
     char file_path[MAX_PATH_SIZE];
     
@@ -90,18 +92,20 @@ int main(int argc, char *argv[]) {
 
     memblock = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
+    global_size = sb.st_size;
+
     if(memblock == MAP_FAILED) perror("mmap");
     
     if(precheck_bits(memblock) == ELFCLASS32) {
         if(argc > 2)
-            launch_checks_x86(memblock, file_path, argv[2]);
+            launch_checks_x86(memblock, file_path, argv[2], global_size);
         else
-            launch_checks_x86(memblock, file_path, NULL);
+            launch_checks_x86(memblock, file_path, NULL, global_size);
     } else if(precheck_bits(memblock) == ELFCLASS64) {
         if(argc > 2)
-            launch_checks_x86_64(memblock, file_path, argv[2]);
+            launch_checks_x86_64(memblock, file_path, argv[2], global_size);
         else
-            launch_checks_x86_64(memblock, file_path, NULL);
+            launch_checks_x86_64(memblock, file_path, NULL, global_size);
     } else {
         printf("\033[1;31m[-] Invalid ELF file.\033[0m\n\n");
         exit(0);
