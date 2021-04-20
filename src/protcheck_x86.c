@@ -225,19 +225,20 @@ int check_RELRO_x86(void) {
 	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
 	    if(phdr_x86[i].p_type == PT_GNU_RELRO)
 		        relro = 1;
-    }
+        }
 		        
     for(int i = 0; i < elf_ehdr_x86->e_shnum; i++) {
         if(shdr_x86[i].sh_type == SHT_DYNAMIC) {
         
-		    Elf32_Dyn *dyn = (Elf32_Dyn *)(base_x86 + shdr_x86[i].sh_offset);
-		    int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
-		    //void *sdata = (void *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
+            Elf32_Dyn *dyn = (Elf32_Dyn *)(base_x86 + shdr_x86[i].sh_offset);
+            int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+            //void *sdata = (void *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
             
             for(int j = 0; j < num; j++) {
-                if(dyn[j].d_tag == DT_FLAGS) 
+                if(dyn[j].d_tag == DT_FLAGS) {
                     if(CHECK_BIT(dyn[j].d_un.d_val, BIND_NOW_BIT_POS))
                         bind = 1;
+                }
             }
         }
     
@@ -323,9 +324,10 @@ int check_PIE_x86(void) {
     if(elf_ehdr_x86->e_type == ET_DYN)
         return 0;
     else {
-	    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++)
-	        if(phdr_x86[i].p_type == PT_LOAD)
-		            return phdr_x86[i].p_vaddr;
+	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
+	    if(phdr_x86[i].p_type == PT_LOAD)
+		    return phdr_x86[i].p_vaddr;
+        }
         return 0x1;
     }
 }
@@ -396,11 +398,11 @@ void check_rwx_segments_x86(void) {
     if(phdr_x86 + elf_ehdr_x86->e_phnum > phdr_x86 + sizeof(Elf32_Phdr))
         mem_error();
 
-	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++)
-	    if(phdr_x86[i].p_flags == RWE_PROT) {
-	        if(!found)
-		        printf("  RWX:\t\t\033[1;31mHas RWX Segments\033[0m\n");
-		}
+    for(int i = 0; i < elf_ehdr_x86->e_phnum; i++)
+        if(phdr_x86[i].p_flags == RWE_PROT) {
+            if(!found)
+                printf("  RWX:\t\t\033[1;31mHas RWX Segments\033[0m\n");
+        }
 }
 
 void check_dangerous_imports_x86(void) {
@@ -543,48 +545,48 @@ int launch_checks_x86(void *memchunk, char *file_path, char *libc_path, int glob
     relro = check_RELRO_x86();
     
     printf("  RELRO: ");
-	if(relro == RELRO_FALSE)
-	    printf("\t\033[0;31mNo RELRO\033[0m\n");
-	else if(relro == RELRO_FULL)
-	    printf("\t\033[0;32mFull RELRO\033[0m\n");
-	else
-	    printf("\t\033[0;33mPartial RELRO\033[0m\n");
+    if(relro == RELRO_FALSE)
+        printf("\t\033[0;31mNo RELRO\033[0m\n");
+    else if(relro == RELRO_FULL)
+        printf("\t\033[0;32mFull RELRO\033[0m\n");
+    else
+        printf("\t\033[0;33mPartial RELRO\033[0m\n");
 	
-	printf("  NX: ");
-	if(check_NX_x86())
-	    printf("\t\t\033[0;32mNX Enabled\033[0m\n");
-	else
-	    printf("\t\t\033[0;31mNX Disabled\033[0m\n");
+    printf("  NX: ");
+    if(check_NX_x86())
+        printf("\t\t\033[0;32mNX Enabled\033[0m\n");
+    else
+        printf("\t\t\033[0;31mNX Disabled\033[0m\n");
 	    
     printf("  Stack: ");    
-	if(check_canary_x86())
-	    printf("\t\033[0;32mCanary found\033[0m\n");
-	else
-	    printf("\t\033[0;31mCanary not found\033[0m\n");
+    if(check_canary_x86())
+        printf("\t\033[0;32mCanary found\033[0m\n");
+    else
+        printf("\t\033[0;31mCanary not found\033[0m\n");
 	    
     printf("  PIE: ");
     base_addr = check_PIE_x86();
-	if(base_addr == 0)
-	    printf("\t\t\033[0;32mPIE Enabled\033[0m\n");
-	else if(base_addr == 0x1)
+    if(base_addr == 0)
+        printf("\t\t\033[0;32mPIE Enabled\033[0m\n");
+    else if(base_addr == 0x1)
         printf("\t\t\033[0;31mNo PIE\033[0m\n");
     else
-	    printf("\t\t\033[0;31mNo PIE (0x%x)\033[0m\n", base_addr);
+        printf("\t\t\033[0;31mNo PIE (0x%x)\033[0m\n", base_addr);
 
     printf("  FORTIFY: ");
     if(fortify_flag_x86) {
-	    if(check_FORTIFY_x86())
-	        printf("\t\033[0;32mFORTIFY Detected\033[0m\n");
-	    else
-	        printf("\t\033[0;31mFORTIFY not found\033[0m\n");
-	} else {
-	    printf("\t\033[0;93mSkipped\033[0m\n");
-	}
+        if(check_FORTIFY_x86())
+            printf("\t\033[0;32mFORTIFY Detected\033[0m\n");
+        else
+            printf("\t\033[0;31mFORTIFY not found\033[0m\n");
+    } else {
+        printf("\t\033[0;93mSkipped\033[0m\n");
+    }
 	
     check_rwx_segments_x86();
     check_dangerous_imports_x86();
     check_interesting_imports_x86();
 	     
-	return 0;
+    return 0;
 
 }
