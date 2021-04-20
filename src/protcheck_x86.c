@@ -333,7 +333,7 @@ int check_PIE_x86(void) {
 }
 
 void mem_error(void) {
-    printf("\033[1;31m[-] A memory error has ocurred!\033[0m\n");
+    printf("\033[1;31m[-] ELF file is corrupted.\033[0m\n");
     exit(-1);
 }
 
