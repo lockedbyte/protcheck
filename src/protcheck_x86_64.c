@@ -1,6 +1,6 @@
 /*
 
-    Protcheck 1.0.0 - @lockedbyte (https://github.com/lockedbyte/protcheck)
+    Protcheck 1.0.1 - @lockedbyte (https://github.com/lockedbyte/protcheck)
     
         A C utility to check an ELF binary protections parsing the ELF directly instead of using intermediate programs like readelf or grep.
         
@@ -33,7 +33,7 @@ char *get_arch_x86_64(void);
 char *get_bits_x86_64(void);
 void check_rwx_segments_x86_64(void);
 void check_dangerous_imports_x86_64(void);
-int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path, int global_sz);
+int launch_checks_x86_64(void *memchunk, char *file_path, char *libc_path, int global_sz);
 // -------------
 
 Elf64_Ehdr *elf_ehdr_x86_64 = NULL;
@@ -50,18 +50,18 @@ int libc_size_x86_64 = 0;
 
 int sname_prox_size_x86_64 = 512;
 
-char *sname_x86_64 = NULL;
-unsigned long base_x86_64 = 0;
+void *sname_x86_64 = NULL;
+void *base_x86_64 = 0;
 
-char *libc_sname_x86_64 = NULL;
-unsigned long libc_base_x86_64 = 0;
+void *libc_sname_x86_64 = NULL;
+void *libc_base_x86_64 = 0;
 
 int fortify_flag_x86_64 = 1;
 
 int load_libc_x86_64(char *libc_path) {
 
-    const char *Elf64_Ehdr_chunk = NULL;
-    const char *memchunk = NULL;
+    void *Elf64_Ehdr_chunk = NULL;
+    void *memchunk = NULL;
     int fd = 0;
     struct stat sb;
     
@@ -116,7 +116,7 @@ int load_libc_x86_64(char *libc_path) {
             }
         }
         
-        libc_base_x86_64 = (long unsigned int)memchunk;
+        libc_base_x86_64 = (void *)memchunk;
 
         Elf64_Ehdr_chunk = mmap(NULL, sizeof(Elf64_Ehdr), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         
@@ -163,7 +163,7 @@ int load_libc_x86_64(char *libc_path) {
             mem_error();
 
         if((libc_base_x86_64 + libc_shdr_x86_64[libc_ehdr_x86_64->e_shstrndx].sh_offset) <= (libc_base_x86_64 + libc_size_x86_64 - sizeof(Elf64_Shdr))) 
-            libc_sname_x86_64 = (char *)(libc_base_x86_64 + libc_shdr_x86_64[libc_ehdr_x86_64->e_shstrndx].sh_offset);
+            libc_sname_x86_64 = (void *)(libc_base_x86_64 + libc_shdr_x86_64[libc_ehdr_x86_64->e_shstrndx].sh_offset);
         else
             mem_error();
 
@@ -190,7 +190,7 @@ int check_canary_x86_64(void) {
 
             Elf64_Sym *sym = (Elf64_Sym *)(base_x86_64 + shdr_x86_64[i].sh_offset);
             int num = shdr_x86_64[i].sh_size / shdr_x86_64[i].sh_entsize;
-            char *sdata = (char *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
+            void *sdata = (void *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -198,8 +198,8 @@ int check_canary_x86_64(void) {
                    !is_pointer_valid_x86_64(sdata + sym[j].st_name))
                     continue;
                     
-                if(strcmp(sdata + sym[j].st_name, CANARY_CLUE_1) == 0 || 
-                    strcmp(sdata + sym[j].st_name, CANARY_CLUE_2) == 0)
+                if(strcmp((char *)(sdata + sym[j].st_name), CANARY_CLUE_1) == 0 || 
+                    strcmp((char *)(sdata + sym[j].st_name), CANARY_CLUE_2) == 0)
                     return CANARY_TRUE;
                     
             }
@@ -231,7 +231,7 @@ int check_RELRO_x86_64(void) {
         
 		    Elf64_Dyn *dyn = (Elf64_Dyn *)(base_x86_64 + shdr_x86_64[i].sh_offset);
 		    int num = shdr_x86_64[i].sh_size / shdr_x86_64[i].sh_entsize;
-		    //char *sdata = (char *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
+		    //void *sdata = (void *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
             
             for(int j = 0; j < num; j++) {
                 if(dyn[j].d_tag == DT_FLAGS) 
@@ -281,11 +281,11 @@ int check_FORTIFY_x86_64(void) {
 
                 Elf64_Sym *sym = (Elf64_Sym *)(base_x86_64 + shdr_x86_64[i].sh_offset);
                 int num = shdr_x86_64[i].sh_size / shdr_x86_64[i].sh_entsize;
-                char *sdata = (char *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
+                void *sdata = (void *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
 
                 Elf64_Sym *libc_sym = (Elf64_Sym *)(libc_base_x86_64 + libc_shdr_x86_64[x].sh_offset);
                 int libc_num = libc_shdr_x86_64[i].sh_size / libc_shdr_x86_64[x].sh_entsize;
-                char *libc_sdata = (char *)libc_base_x86_64 + libc_shdr_x86_64[libc_shdr_x86_64[x].sh_link].sh_offset;
+                void *libc_sdata = (void *)libc_base_x86_64 + libc_shdr_x86_64[libc_shdr_x86_64[x].sh_link].sh_offset;
                 
                 for(int j = 0; j < num; j++) {
                     for(int k = 0; k < libc_num; k++) {
@@ -300,9 +300,9 @@ int check_FORTIFY_x86_64(void) {
                            !is_pointer_valid_x86_64(libc_sdata + libc_sym[k].st_name))
                             continue;
                              
-                        snprintf(buf, sizeof(buf)-1, "__%s_chk", libc_sdata + libc_sym[k].st_name);
+                        snprintf(buf, sizeof(buf)-1, "__%s_chk", (char *)(libc_sdata + libc_sym[k].st_name));
                         
-                        if(strcmp(buf, sdata + sym[j].st_name) == 0)
+                        if(strcmp(buf, (char *)(sdata + sym[j].st_name)) == 0)
                             return FORTIFY_TRUE;
                     }
                 }
@@ -349,7 +349,7 @@ int check_ELF_x86_64(void) {
         mem_error();
 
     if((base_x86_64 + shdr_x86_64[elf_ehdr_x86_64->e_shstrndx].sh_offset) <= (base_x86_64 + global_size_x86_64 - sname_prox_size_x86_64))
-       sname_x86_64 = (char *)(base_x86_64 + shdr_x86_64[elf_ehdr_x86_64->e_shstrndx].sh_offset);
+       sname_x86_64 = (void *)(base_x86_64 + shdr_x86_64[elf_ehdr_x86_64->e_shstrndx].sh_offset);
     else
         mem_error();
 
@@ -409,7 +409,7 @@ void check_dangerous_imports_x86_64(void) {
 
             Elf64_Sym *sym = (Elf64_Sym *)(base_x86_64 + shdr_x86_64[i].sh_offset);
             int num = shdr_x86_64[i].sh_size / shdr_x86_64[i].sh_entsize;
-            char *sdata = (char *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
+            void *sdata = (void *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -417,7 +417,7 @@ void check_dangerous_imports_x86_64(void) {
                    !is_pointer_valid_x86_64(sdata + sym[j].st_name))
                     continue;
                 
-                if(strcmp(sdata + sym[j].st_name, "gets") == 0)
+                if(strcmp((char *)(sdata + sym[j].st_name), "gets") == 0)
                     goto FOUND_X;
                 else
                     continue;
@@ -427,7 +427,7 @@ void check_dangerous_imports_x86_64(void) {
                     if(!found)
                         printf("\n  \033[1;34m[=]\033[0m Found dangerous imports: \n");
                     found++;
-                    printf("    \033[1;32m[+]\033[0m Imported function: %s\n", sdata + sym[j].st_name);
+                    printf("    \033[1;32m[+]\033[0m Imported function: %s\n", (char *)(sdata + sym[j].st_name));
 
             }
         }
@@ -449,7 +449,7 @@ void check_interesting_imports_x86_64(void) {
 
             Elf64_Sym *sym = (Elf64_Sym *)(base_x86_64 + shdr_x86_64[i].sh_offset);
             int num = shdr_x86_64[i].sh_size / shdr_x86_64[i].sh_entsize;
-            char *sdata = (char *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
+            void *sdata = (void *)base_x86_64 + shdr_x86_64[shdr_x86_64[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -457,29 +457,29 @@ void check_interesting_imports_x86_64(void) {
                    !is_pointer_valid_x86_64(sdata + sym[j].st_name))
                     continue;
                 
-                if(strcmp(sdata + sym[j].st_name, "system") == 0)
+                if(strcmp((char *)(sdata + sym[j].st_name), "system") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "mmap") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "mmap") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "__mmap") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "__mmap") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "mmap64") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "mmap64") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "mprotect") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "mprotect") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "__mprotect") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "__mprotect") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "pkey_mprotect") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "pkey_mprotect") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "syscall") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "syscall") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "dup2") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "dup2") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "execve") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "execve") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "fexecve") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "fexecve") == 0)
                     goto FOUND_X;
-                else if(strcmp(sdata + sym[j].st_name, "__libc_system") == 0)
+                else if(strcmp((char *)(sdata + sym[j].st_name), "__libc_system") == 0)
                     goto FOUND_X;
                 else
                     continue;
@@ -489,14 +489,14 @@ void check_interesting_imports_x86_64(void) {
                     if(!found)
                         printf("\n  \033[1;34m[=]\033[0m Found interesting imports: \n");
                     found++;
-                    printf("    \033[1;32m[+]\033[0m Imported function: %s\n", sdata + sym[j].st_name);
+                    printf("    \033[1;32m[+]\033[0m Imported function: %s\n", (char *)(sdata + sym[j].st_name));
 
             }
         }
     }
 }
 
-int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path, int global_sz) {
+int launch_checks_x86_64(void *memchunk, char *file_path, char *libc_path, int global_sz) {
     
     int relro = 0;
     int base_addr = 0;
@@ -506,13 +506,14 @@ int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path,
 
     global_size_x86_64 = global_sz;
     
-    base_x86_64 = (long unsigned int)memchunk;
+    base_x86_64 = (void *)memchunk;
     
-    const char *Elf64_Ehdr_chunk = NULL;
+    void *Elf64_Ehdr_chunk = NULL;
 	
     Elf64_Ehdr_chunk = mmap(NULL, sizeof(Elf64_Ehdr), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     
-    if(Elf64_Ehdr_chunk == MAP_FAILED) return -1;
+    if(Elf64_Ehdr_chunk == MAP_FAILED)
+        return -1;
     
     memcpy((void *)Elf64_Ehdr_chunk, memchunk, sizeof(Elf64_Ehdr));
     
@@ -535,48 +536,48 @@ int launch_checks_x86_64(const char *memchunk, char *file_path, char *libc_path,
     relro = check_RELRO_x86_64();
     
     printf("  RELRO: ");
-	if(relro == RELRO_FALSE)
-	    printf("\t\033[0;31mNo RELRO\033[0m\n");
-	else if(relro == RELRO_FULL)
-	    printf("\t\033[0;32mFull RELRO\033[0m\n");
-	else
-	    printf("\t\033[0;33mPartial RELRO\033[0m\n");
+    if(relro == RELRO_FALSE)
+        printf("\t\033[0;31mNo RELRO\033[0m\n");
+    else if(relro == RELRO_FULL)
+        printf("\t\033[0;32mFull RELRO\033[0m\n");
+    else
+        printf("\t\033[0;33mPartial RELRO\033[0m\n");
 	
-	printf("  NX: ");
-	if(check_NX_x86_64())
-	    printf("\t\t\033[0;32mNX Enabled\033[0m\n");
-	else
-	    printf("\t\t\033[0;31mNX Disabled\033[0m\n");
+    printf("  NX: ");
+    if(check_NX_x86_64())
+        printf("\t\t\033[0;32mNX Enabled\033[0m\n");
+    else
+        printf("\t\t\033[0;31mNX Disabled\033[0m\n");
 	    
     printf("  Stack: ");    
-	if(check_canary_x86_64())
-	    printf("\t\033[0;32mCanary found\033[0m\n");
-	else
-	    printf("\t\033[0;31mCanary not found\033[0m\n");
+    if(check_canary_x86_64())
+        printf("\t\033[0;32mCanary found\033[0m\n");
+    else
+        printf("\t\033[0;31mCanary not found\033[0m\n");
 	    
     printf("  PIE: ");
     base_addr = check_PIE_x86_64();
-	if(base_addr == 0)
-	    printf("\t\t\033[0;32mPIE Enabled\033[0m\n");
-	else if(base_addr == 0x1)
+    if(base_addr == NULL)
+        printf("\t\t\033[0;32mPIE Enabled\033[0m\n");
+    else if(base_addr == 0x1)
         printf("\t\t\033[0;31mNo PIE\033[0m\n");
     else
-	    printf("\t\t\033[0;31mNo PIE (0x%x)\033[0m\n", base_addr);
+        printf("\t\t\033[0;31mNo PIE (0x%x)\033[0m\n", base_addr);
 
     printf("  FORTIFY: ");
     if(fortify_flag_x86_64) {
-	    if(check_FORTIFY_x86_64())
-	        printf("\t\033[0;32mFORTIFY Detected\033[0m\n");
-	    else
-	        printf("\t\033[0;31mFORTIFY not found\033[0m\n");
-	} else {
-	    printf("\t\033[0;93mSkipped\033[0m\n");
-	}
+        if(check_FORTIFY_x86_64())
+            printf("\t\033[0;32mFORTIFY Detected\033[0m\n");
+        else
+            printf("\t\033[0;31mFORTIFY not found\033[0m\n");
+    } else {
+        printf("\t\033[0;93mSkipped\033[0m\n");
+    }
 	
     check_rwx_segments_x86_64();
     check_dangerous_imports_x86_64();
     check_interesting_imports_x86_64();
 	     
-	return 0;
+    return 0;
 
 }

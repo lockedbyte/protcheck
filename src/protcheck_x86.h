@@ -1,6 +1,6 @@
 /*
 
-    Protcheck 1.0.0 - @lockedbyte (https://github.com/lockedbyte/protcheck)
+    Protcheck 1.0.1 - @lockedbyte (https://github.com/lockedbyte/protcheck)
     
         A C utility to check an ELF binary protections parsing the ELF directly instead of using intermediate programs like readelf or grep.
         
@@ -18,5 +18,5 @@ char *get_arch_x86(void);
 char *get_bits_x86(void);
 void check_rwx_segments_x86(void);
 void check_dangerous_imports_x86(void);
-int launch_checks_x86(const char *memchunk, char *file_path, char *libc_path, int global_sz);
+int launch_checks_x86(void *memchunk, char *file_path, char *libc_path, int global_sz);
 // -------------
