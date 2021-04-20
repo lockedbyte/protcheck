@@ -37,33 +37,33 @@ void check_dangerous_imports_x86(void);
 int launch_checks_x86(const char *memchunk, char *file_path, char *libc_path, int global_sz);
 // -------------
 
-Elf32_Ehdr *elf_ehdr;
-Elf32_Shdr *shdr;
-Elf32_Phdr *phdr;
+Elf32_Ehdr *elf_ehdr_x86 = NULL;
+Elf32_Shdr *shdr_x86 = NULL;
+Elf32_Phdr *phdr_x86 = NULL;
 
-Elf32_Ehdr *libc_ehdr;
-Elf32_Shdr *libc_shdr;
-Elf32_Phdr *libc_phdr;
+Elf32_Ehdr *libc_ehdr_x86 = NULL;
+Elf32_Shdr *libc_shdr_x86 = NULL;
+Elf32_Phdr *libc_phdr_x86 = NULL;
 
 int global_size_x86 = 0;
 
 int libc_size_x86 = 0;
 
-char *sname;
-unsigned long base;
+char *sname_x86 = NULL;
+unsigned long base_x86 = 0;
 
 int sname_prox_size_x86 = 512;
 
-char *libc_sname;
-unsigned long libc_base;
+char *libc_sname_x86 = NULL;
+unsigned long libc_base_x86 = 0;
 
 int fortify_flag_x86 = 1;
 
 int load_libc_x86(char *libc_path) {
 
-    const char *Elf32_Ehdr_chunk;
-    const char *memchunk;
-    int fd;
+    const char *Elf32_Ehdr_chunk = NULL;
+    const char *memchunk = NULL;
+    int fd = 0;
     struct stat sb;
     
     if(libc_path == NULL)
@@ -117,7 +117,7 @@ int load_libc_x86(char *libc_path) {
             }
         }
         
-        libc_base = (long unsigned int)memchunk;
+        libc_base_x86 = (long unsigned int)memchunk;
 
         Elf32_Ehdr_chunk = mmap(NULL, sizeof(Elf32_Ehdr), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         
@@ -138,10 +138,10 @@ int load_libc_x86(char *libc_path) {
         
         memcpy((void *)Elf32_Ehdr_chunk, memchunk, sizeof(Elf32_Ehdr));
         
-	    libc_ehdr = (Elf32_Ehdr *)Elf32_Ehdr_chunk;
+	    libc_ehdr_x86 = (Elf32_Ehdr *)Elf32_Ehdr_chunk;
 
 	    for(int i = 0 ; i < 4 ; i++) {
-	        if(libc_ehdr->e_ident[i] != ELFMAG[i]) {
+	        if(libc_ehdr_x86->e_ident[i] != ELFMAG[i]) {
 	            printf("\033[1;31m[-] libc corrupted or wrong. Skipping FORTIFY checks then...\033[0m\n\n");
 	            fortify_flag_x86 = 0;
 	            
@@ -150,21 +150,21 @@ int load_libc_x86(char *libc_path) {
 	    }
 	    
 
-        if((libc_base + libc_ehdr->e_shoff) <= (libc_base + libc_size_x86 - sizeof(Elf32_Shdr))) 
-            libc_shdr = (Elf32_Shdr *)(libc_base + libc_ehdr->e_shoff);
+        if((libc_base_x86 + libc_ehdr_x86->e_shoff) <= (libc_base_x86 + libc_size_x86 - sizeof(Elf32_Shdr))) 
+            libc_shdr_x86 = (Elf32_Shdr *)(libc_base_x86 + libc_ehdr_x86->e_shoff);
         else
             mem_error();
 
-        if((libc_base + libc_ehdr->e_phoff) <= (libc_base + libc_size_x86 - sizeof(Elf32_Ehdr))) 
-            libc_phdr = (Elf32_Phdr *)(libc_base + libc_ehdr->e_phoff);
+        if((libc_base_x86 + libc_ehdr_x86->e_phoff) <= (libc_base_x86 + libc_size_x86 - sizeof(Elf32_Ehdr))) 
+            libc_phdr_x86 = (Elf32_Phdr *)(libc_base_x86 + libc_ehdr_x86->e_phoff);
         else
             mem_error();
 
-        if(libc_ehdr->e_shstrndx > sizeof(Elf32_Shdr))
+        if(libc_ehdr_x86->e_shstrndx > sizeof(Elf32_Shdr))
             mem_error();
 
-        if((libc_base + libc_shdr[libc_ehdr->e_shstrndx].sh_offset) <= (libc_base + libc_size_x86 - sizeof(Elf32_Shdr))) 
-            libc_sname = (char *)(libc_base + libc_shdr[libc_ehdr->e_shstrndx].sh_offset);
+        if((libc_base_x86 + libc_shdr_x86[libc_ehdr_x86->e_shstrndx].sh_offset) <= (libc_base_x86 + libc_size_x86 - sizeof(Elf32_Shdr))) 
+            libc_sname_x86 = (char *)(libc_base_x86 + libc_shdr_x86[libc_ehdr_x86->e_shstrndx].sh_offset);
         else
             mem_error();
 
@@ -176,22 +176,22 @@ int load_libc_x86(char *libc_path) {
 
 int is_pointer_valid_x86(void *p) {
     size_t page_size = sysconf(_SC_PAGESIZE);
-    void *base = (void *)((((size_t)p) / page_size) * page_size);
-    return msync(base, page_size, MS_ASYNC) == 0;
+    void *basex = (void *)((((size_t)p) / page_size) * page_size);
+    return msync(basex, page_size, MS_ASYNC) == 0;
 }
 
 int check_canary_x86(void) {
 
-    if(shdr + elf_ehdr->e_phnum > shdr + sizeof(Elf32_Shdr))
+    if(shdr_x86 + elf_ehdr_x86->e_phnum > shdr_x86 + sizeof(Elf32_Shdr))
         mem_error();
 
-    for (int i = 0; i < elf_ehdr->e_phnum; i++) {
+    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
 
-        if(shdr[i].sh_type == SHT_DYNSYM) {
+        if(shdr_x86[i].sh_type == SHT_DYNSYM) {
 
-            Elf32_Sym *sym = (Elf32_Sym *)(base + shdr[i].sh_offset);
-            int num = shdr[i].sh_size / shdr[i].sh_entsize;
-            char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
+            Elf32_Sym *sym = (Elf32_Sym *)(base_x86 + shdr_x86[i].sh_offset);
+            int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+            char *sdata = (char *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -216,23 +216,23 @@ int check_RELRO_x86(void) {
     int relro = 0;
     int bind = 0;
 
-    if(phdr + elf_ehdr->e_phnum > phdr + sizeof(Elf32_Phdr))
+    if(phdr_x86 + elf_ehdr_x86->e_phnum > phdr_x86 + sizeof(Elf32_Phdr))
         mem_error();
 
-    if(shdr + elf_ehdr->e_shnum > shdr + sizeof(Elf32_Shdr))
+    if(shdr_x86 + elf_ehdr_x86->e_shnum > shdr_x86 + sizeof(Elf32_Shdr))
         mem_error();
 
-	for (int i = 0; i < elf_ehdr->e_phnum; i++) {
-	    if(phdr[i].p_type == PT_GNU_RELRO)
+	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
+	    if(phdr_x86[i].p_type == PT_GNU_RELRO)
 		        relro = 1;
     }
 		        
-    for(int i = 0; i < elf_ehdr->e_shnum; i++) {
-        if(shdr[i].sh_type == SHT_DYNAMIC) {
+    for(int i = 0; i < elf_ehdr_x86->e_shnum; i++) {
+        if(shdr_x86[i].sh_type == SHT_DYNAMIC) {
         
-		    Elf32_Dyn *dyn = (Elf32_Dyn *)(base + shdr[i].sh_offset);
-		    int num = shdr[i].sh_size / shdr[i].sh_entsize;
-		    //char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
+		    Elf32_Dyn *dyn = (Elf32_Dyn *)(base_x86 + shdr_x86[i].sh_offset);
+		    int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+		    //char *sdata = (char *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
             
             for(int j = 0; j < num; j++) {
                 if(dyn[j].d_tag == DT_FLAGS) 
@@ -255,12 +255,12 @@ int check_RELRO_x86(void) {
 
 int check_NX_x86(void) {
 
-    if(phdr + elf_ehdr->e_phnum > phdr + sizeof(Elf32_Phdr))
+    if(phdr_x86 + elf_ehdr_x86->e_phnum > phdr_x86 + sizeof(Elf32_Phdr))
         mem_error();
 
-	for (int i = 0; i < elf_ehdr->e_phnum; i++)
-	    if(phdr[i].p_type == PT_GNU_STACK && 
-	        phdr[i].p_flags == RWE_PROT)
+	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++)
+	    if(phdr_x86[i].p_type == PT_GNU_STACK && 
+	        phdr_x86[i].p_flags == RWE_PROT)
 		        return NX_FALSE;
         return NX_TRUE;
 
@@ -269,22 +269,24 @@ int check_NX_x86(void) {
 int check_FORTIFY_x86(void) {
     
     char buf[256];
+    
+    memset(buf, '\0', sizeof(buf));
 
-    if(shdr + elf_ehdr->e_phnum > shdr + sizeof(Elf32_Shdr))
+    if(shdr_x86 + elf_ehdr_x86->e_phnum > shdr_x86 + sizeof(Elf32_Shdr))
         mem_error();
 
-    for (int i = 0; i < elf_ehdr->e_phnum; i++) {
-        for (int x = 0; x < libc_ehdr->e_phnum; x++) {
+    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
+        for (int x = 0; x < libc_ehdr_x86->e_phnum; x++) {
             
-            if(shdr[i].sh_type == SHT_DYNSYM && libc_shdr[x].sh_type == SHT_DYNSYM) {
+            if(shdr_x86[i].sh_type == SHT_DYNSYM && libc_shdr_x86[x].sh_type == SHT_DYNSYM) {
 
-                Elf32_Sym *sym = (Elf32_Sym *)(base + shdr[i].sh_offset);
-                int num = shdr[i].sh_size / shdr[i].sh_entsize;
-                char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
+                Elf32_Sym *sym = (Elf32_Sym *)(base_x86 + shdr_x86[i].sh_offset);
+                int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+                char *sdata = (char *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
 
-                Elf32_Sym *libc_sym = (Elf32_Sym *)(libc_base + libc_shdr[x].sh_offset);
-                int libc_num = libc_shdr[i].sh_size / libc_shdr[x].sh_entsize;
-                char *libc_sdata = (char *)libc_base + libc_shdr[libc_shdr[x].sh_link].sh_offset;
+                Elf32_Sym *libc_sym = (Elf32_Sym *)(libc_base_x86 + libc_shdr_x86[x].sh_offset);
+                int libc_num = libc_shdr_x86[i].sh_size / libc_shdr_x86[x].sh_entsize;
+                char *libc_sdata = (char *)libc_base_x86 + libc_shdr_x86[libc_shdr_x86[x].sh_link].sh_offset;
                 
                 for(int j = 0; j < num; j++) {
                     for(int k = 0; k < libc_num; k++) {
@@ -315,15 +317,15 @@ int check_FORTIFY_x86(void) {
 
 int check_PIE_x86(void) {
     
-    if(phdr + elf_ehdr->e_phnum > phdr + sizeof(Elf32_Phdr))
+    if(phdr_x86 + elf_ehdr_x86->e_phnum > phdr_x86 + sizeof(Elf32_Phdr))
         mem_error();
     
-    if(elf_ehdr->e_type == ET_DYN)
+    if(elf_ehdr_x86->e_type == ET_DYN)
         return 0;
     else {
-	    for (int i = 0; i < elf_ehdr->e_phnum; i++)
-	        if(phdr[i].p_type == PT_LOAD)
-		            return phdr[i].p_vaddr;
+	    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++)
+	        if(phdr_x86[i].p_type == PT_LOAD)
+		            return phdr_x86[i].p_vaddr;
         return 0x1;
     }
 }
@@ -335,25 +337,25 @@ void mem_error(void) {
 
 int check_ELF_x86(void) {
 
-	for(int i = 0 ; i < 4 ; i++)
-	    if(elf_ehdr->e_ident[i] != ELFMAG[i])
-	        return 0;
+    for(int i = 0 ; i < 4 ; i++)
+        if(elf_ehdr_x86->e_ident[i] != ELFMAG[i])
+            return 0;
 
-    if((base + elf_ehdr->e_shoff) <= (base + global_size_x86 - sizeof(Elf32_Shdr)))
-	   shdr = (Elf32_Shdr *)(base + elf_ehdr->e_shoff);
+    if((base_x86 + elf_ehdr_x86->e_shoff) <= (base_x86 + global_size_x86 - sizeof(Elf32_Shdr)))
+	   shdr_x86 = (Elf32_Shdr *)(base_x86 + elf_ehdr_x86->e_shoff);
     else
         mem_error();
 
-    if((base + elf_ehdr->e_phoff) <= (base + global_size_x86 - sizeof(Elf32_Phdr)))
-       phdr = (Elf32_Phdr *)(base + elf_ehdr->e_phoff);
+    if((base_x86 + elf_ehdr_x86->e_phoff) <= (base_x86 + global_size_x86 - sizeof(Elf32_Phdr)))
+       phdr_x86 = (Elf32_Phdr *)(base_x86 + elf_ehdr_x86->e_phoff);
     else
         mem_error();
 
-    if(elf_ehdr->e_shstrndx > sizeof(Elf32_Shdr))
+    if(elf_ehdr_x86->e_shstrndx > sizeof(Elf32_Shdr))
         mem_error();
 
-    if((base + shdr[elf_ehdr->e_shstrndx].sh_offset) <= (base + global_size_x86 - sname_prox_size_x86))
-       sname = (char *)(base + shdr[elf_ehdr->e_shstrndx].sh_offset);
+    if((base_x86 + shdr_x86[elf_ehdr_x86->e_shstrndx].sh_offset) <= (base_x86 + global_size_x86 - sname_prox_size_x86))
+       sname_x86 = (char *)(base_x86 + shdr_x86[elf_ehdr_x86->e_shstrndx].sh_offset);
     else
         mem_error();
 
@@ -364,13 +366,13 @@ int check_ELF_x86(void) {
 
 char *get_arch_x86(void) {
 
-	if(elf_ehdr->e_machine == EM_386)
+	if(elf_ehdr_x86->e_machine == EM_386)
 		return EM_386_STR;
-	else if(elf_ehdr->e_machine == EM_860)
+	else if(elf_ehdr_x86->e_machine == EM_860)
 	    return EM_860_STR;
-	else if(elf_ehdr->e_machine == EM_X86_64)
+	else if(elf_ehdr_x86->e_machine == EM_X86_64)
 		return EM_X86_64_STR;
-	else if(elf_ehdr->e_machine == EM_ARM)
+	else if(elf_ehdr_x86->e_machine == EM_ARM)
 	    return EM_ARM_STR;
 	else
 		return UNKNOWN_STR;
@@ -379,9 +381,9 @@ char *get_arch_x86(void) {
 
 char *get_bits_x86(void) {
 
-	if(elf_ehdr->e_ident[BIT_INDENT_INDEX] == ELFCLASS32)
+	if(elf_ehdr_x86->e_ident[BIT_INDENT_INDEX] == ELFCLASS32)
 		return ELF_32_T_STR;
-	else if(elf_ehdr->e_ident[BIT_INDENT_INDEX] == ELFCLASS64)
+	else if(elf_ehdr_x86->e_ident[BIT_INDENT_INDEX] == ELFCLASS64)
 		return ELF_64_T_STR;
 	else
 		return ELF_UNK_T_STR;
@@ -391,11 +393,11 @@ char *get_bits_x86(void) {
 void check_rwx_segments_x86(void) {
     int found = 0;
     
-    if(phdr + elf_ehdr->e_phnum > phdr + sizeof(Elf32_Phdr))
+    if(phdr_x86 + elf_ehdr_x86->e_phnum > phdr_x86 + sizeof(Elf32_Phdr))
         mem_error();
 
-	for (int i = 0; i < elf_ehdr->e_phnum; i++)
-	    if(phdr[i].p_flags == RWE_PROT) {
+	for (int i = 0; i < elf_ehdr_x86->e_phnum; i++)
+	    if(phdr_x86[i].p_flags == RWE_PROT) {
 	        if(!found)
 		        printf("  RWX:\t\t\033[1;31mHas RWX Segments\033[0m\n");
 		}
@@ -406,16 +408,16 @@ void check_dangerous_imports_x86(void) {
     
     int found = 0;
 
-    if(shdr + elf_ehdr->e_phnum  > shdr + sizeof(Elf32_Shdr))
+    if(shdr_x86 + elf_ehdr_x86->e_phnum  > shdr_x86 + sizeof(Elf32_Shdr))
         mem_error();
     
-    for (int i = 0; i < elf_ehdr->e_phnum; i++) {
+    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
 
-        if(shdr[i].sh_type == SHT_DYNSYM) {
+        if(shdr_x86[i].sh_type == SHT_DYNSYM) {
 
-            Elf32_Sym *sym = (Elf32_Sym *)(base + shdr[i].sh_offset);
-            int num = shdr[i].sh_size / shdr[i].sh_entsize;
-            char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
+            Elf32_Sym *sym = (Elf32_Sym *)(base_x86 + shdr_x86[i].sh_offset);
+            int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+            char *sdata = (char *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -446,16 +448,16 @@ void check_interesting_imports_x86(void) {
 
     int found = 0;
 
-    if(shdr + elf_ehdr->e_phnum > shdr + sizeof(Elf32_Shdr))
+    if(shdr_x86 + elf_ehdr_x86->e_phnum > shdr_x86 + sizeof(Elf32_Shdr))
         mem_error();
     
-    for (int i = 0; i < elf_ehdr->e_phnum; i++) {
+    for (int i = 0; i < elf_ehdr_x86->e_phnum; i++) {
 
-        if(shdr[i].sh_type == SHT_DYNSYM) {
+        if(shdr_x86[i].sh_type == SHT_DYNSYM) {
 
-            Elf32_Sym *sym = (Elf32_Sym *)(base + shdr[i].sh_offset);
-            int num = shdr[i].sh_size / shdr[i].sh_entsize;
-            char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
+            Elf32_Sym *sym = (Elf32_Sym *)(base_x86 + shdr_x86[i].sh_offset);
+            int num = shdr_x86[i].sh_size / shdr_x86[i].sh_entsize;
+            char *sdata = (char *)base_x86 + shdr_x86[shdr_x86[i].sh_link].sh_offset;
 
             for(int j = 0; j < num; j++) {
                 
@@ -504,16 +506,17 @@ void check_interesting_imports_x86(void) {
 
 int launch_checks_x86(const char *memchunk, char *file_path, char *libc_path, int global_sz) {
     
-    int relro;
-    int base_addr;
+    int relro = 0;
+    int base_addr = 0;
     char full_arch[50];
+    
     memset(full_arch, '\0', sizeof(full_arch));
 
     global_size_x86 = global_sz;
     
-    base = (long unsigned int)memchunk;
+    base_x86 = (long unsigned int)memchunk;
     
-    const char *Elf32_Ehdr_chunk;
+    const char *Elf32_Ehdr_chunk = NULL;
 	
     Elf32_Ehdr_chunk = mmap(NULL, sizeof(Elf32_Ehdr), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     
@@ -521,7 +524,7 @@ int launch_checks_x86(const char *memchunk, char *file_path, char *libc_path, in
     
     memcpy((void *)Elf32_Ehdr_chunk, memchunk, sizeof(Elf32_Ehdr));
     
-	elf_ehdr = (Elf32_Ehdr *)Elf32_Ehdr_chunk;
+	elf_ehdr_x86 = (Elf32_Ehdr *)Elf32_Ehdr_chunk;
     
     if(!check_ELF_x86()) {
         printf("\033[1;31m[-] The file is corrupted or not an ELF file.\033[0m\n");

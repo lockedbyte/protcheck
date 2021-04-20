@@ -54,10 +54,10 @@ int is_directory(const char *path) {
 
 int main(int argc, char *argv[]) {
 
-    const char *memblock;
-    int fd;
+    const char *memblock = NULL;
+    int fd = 0;
     struct stat sb;
-    int global_size;
+    int global_size = 0;
     
     char file_path[MAX_PATH_SIZE];
     

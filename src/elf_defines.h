@@ -6,6 +6,11 @@
         
 */
 
+#define ELFMAG "\177ELF"                   /* elf magic */
+#define BIT_INDENT_INDEX 0x4               /* bit spec idx */
+#define ELF_32_T_STR "ELF x86 (32-bit)"    /* Str for 32-bit ELF */
+#define ELF_64_T_STR "ELF x86_64 (64-bit)" /* Str for 64-bit ELF */
+
 /* ------------------------------------------------- */
 /* This values are extracted from /usr/include/elf.h */
 /* ------------------------------------------------- */
@@ -31,11 +36,6 @@
 /* --------------------------------------------------- */
 
 #include <sys/types.h>
-
-#define ELFMAG "\177ELF"                   /* elf magic */
-#define BIT_INDENT_INDEX 0x4               /* bit spec idx */
-#define ELF_32_T_STR "ELF x86 (32-bit)"    /* Str for 32-bit ELF */
-#define ELF_64_T_STR "ELF x86_64 (64-bit)" /* Str for 64-bit ELF */
 
 typedef uint16_t Elf32_Half;
 typedef uint16_t Elf64_Half;
